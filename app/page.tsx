@@ -1,16 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Loader2, Key, Play, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Loader2, Key, Play, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
-const MODELS = ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4'] as const;
+// List of OpenAI models available for comparison
+const MODELS = [
+  "gpt-4-turbo",
+  "gpt-4o",
+  "gpt-4o-2024-05-13",
+  "gpt-3.5-turbo-0125",
+] as const;
 
 interface ModelResult {
   model: string;
@@ -28,28 +40,30 @@ interface ModelState {
 }
 
 export default function Home() {
-  const [prompt, setPrompt] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [tempApiKey, setTempApiKey] = useState('');
+  const [prompt, setPrompt] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [tempApiKey, setTempApiKey] = useState("");
   const [saveToLocalStorage, setSaveToLocalStorage] = useState(true);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [modelStates, setModelStates] = useState<Record<string, ModelState>>(() => {
-    const initialStates: Record<string, ModelState> = {};
-    MODELS.forEach(model => {
-      initialStates[model] = {
-        enabled: true,
-        loading: false,
-        result: null,
-        startTime: 0
-      };
-    });
-    return initialStates;
-  });
+  const [modelStates, setModelStates] = useState<Record<string, ModelState>>(
+    () => {
+      const initialStates: Record<string, ModelState> = {};
+      MODELS.forEach((model) => {
+        initialStates[model] = {
+          enabled: true,
+          loading: false,
+          result: null,
+          startTime: 0,
+        };
+      });
+      return initialStates;
+    },
+  );
 
   // Load API key from localStorage on mount
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('openai-api-key');
+    const savedApiKey = localStorage.getItem("openai-api-key");
     if (savedApiKey) {
       setApiKey(savedApiKey);
     }
@@ -58,12 +72,12 @@ export default function Home() {
   const handleSaveApiKey = () => {
     setApiKey(tempApiKey);
     if (saveToLocalStorage) {
-      localStorage.setItem('openai-api-key', tempApiKey);
+      localStorage.setItem("openai-api-key", tempApiKey);
     } else {
-      localStorage.removeItem('openai-api-key');
+      localStorage.removeItem("openai-api-key");
     }
     setIsApiKeyModalOpen(false);
-    setTempApiKey('');
+    setTempApiKey("");
   };
 
   const handleOpenApiKeyModal = () => {
@@ -72,28 +86,28 @@ export default function Home() {
   };
 
   const handleToggleModel = (model: string, enabled: boolean) => {
-    setModelStates(prev => ({
+    setModelStates((prev) => ({
       ...prev,
-      [model]: { ...prev[model], enabled }
+      [model]: { ...prev[model], enabled },
     }));
   };
 
   const handleRun = async () => {
     if (!prompt.trim() || !apiKey) return;
 
-    const enabledModels = MODELS.filter(model => modelStates[model].enabled);
+    const enabledModels = MODELS.filter((model) => modelStates[model].enabled);
     if (enabledModels.length === 0) return;
 
     setIsRunning(true);
 
     // Initialize loading states
     const newStates = { ...modelStates };
-    enabledModels.forEach(model => {
+    enabledModels.forEach((model) => {
       newStates[model] = {
         ...newStates[model],
         loading: true,
         result: null,
-        startTime: Date.now()
+        startTime: Date.now(),
       };
     });
     setModelStates(newStates);
@@ -101,15 +115,15 @@ export default function Home() {
     // Run requests for all enabled models
     const promises = enabledModels.map(async (model) => {
       try {
-        const response = await fetch('/api/openai', {
-          method: 'POST',
+        const response = await fetch("/api/openai", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             prompt,
             model,
-            apiKey
+            apiKey,
           }),
         });
 
@@ -118,7 +132,7 @@ export default function Home() {
         const responseTime = (endTime - newStates[model].startTime) / 1000;
 
         if (response.ok) {
-          setModelStates(prev => ({
+          setModelStates((prev) => ({
             ...prev,
             [model]: {
               ...prev[model],
@@ -127,56 +141,56 @@ export default function Home() {
                 model,
                 response: data.response,
                 tokens: data.tokens,
-                responseTime
-              }
-            }
+                responseTime,
+              },
+            },
           }));
         } else {
           // Show detailed error toast
-          const errorMessage = data.error || 'Unknown error occurred';
+          const errorMessage = data.error || "Unknown error occurred";
           toast.error(`${model} Error`, {
             description: errorMessage,
             duration: 5000,
           });
 
-          setModelStates(prev => ({
+          setModelStates((prev) => ({
             ...prev,
             [model]: {
               ...prev[model],
               loading: false,
               result: {
                 model,
-                response: '',
+                response: "",
                 tokens: 0,
                 responseTime,
-                error: errorMessage
-              }
-            }
+                error: errorMessage,
+              },
+            },
           }));
         }
       } catch (error) {
         const endTime = Date.now();
         const responseTime = (endTime - newStates[model].startTime) / 1000;
-        const errorMessage = 'Network error - please check your connection';
-        
+        const errorMessage = "Network error - please check your connection";
+
         toast.error(`${model} Network Error`, {
           description: errorMessage,
           duration: 5000,
         });
-        
-        setModelStates(prev => ({
+
+        setModelStates((prev) => ({
           ...prev,
           [model]: {
             ...prev[model],
             loading: false,
             result: {
               model,
-              response: '',
+              response: "",
               tokens: 0,
               responseTime,
-              error: errorMessage
-            }
-          }
+              error: errorMessage,
+            },
+          },
         }));
       }
     });
@@ -213,7 +227,8 @@ export default function Home() {
             OpenAI Model Comparison
           </h1>
           <p className="text-center text-muted-foreground max-w-2xl mx-auto">
-            Compare responses from different OpenAI models side by side. Enter your prompt and see how each model responds.
+            Compare responses from different OpenAI models side by side. Enter
+            your prompt and see how each model responds.
           </p>
         </div>
 
@@ -223,7 +238,10 @@ export default function Home() {
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row gap-4 items-end">
                 <div className="flex-1">
-                  <Label htmlFor="prompt" className="text-sm font-medium mb-2 block">
+                  <Label
+                    htmlFor="prompt"
+                    className="text-sm font-medium mb-2 block"
+                  >
                     Enter your prompt
                   </Label>
                   <Input
@@ -236,7 +254,10 @@ export default function Home() {
                   />
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                  <Dialog open={isApiKeyModalOpen} onOpenChange={setIsApiKeyModalOpen}>
+                  <Dialog
+                    open={isApiKeyModalOpen}
+                    onOpenChange={setIsApiKeyModalOpen}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         variant={apiKey ? "outline" : "destructive"}
@@ -244,7 +265,7 @@ export default function Home() {
                         className="h-12 px-6"
                       >
                         <Key className="h-4 w-4 mr-2" />
-                        {apiKey ? 'API Key Set' : 'Set API Key'}
+                        {apiKey ? "API Key Set" : "Set API Key"}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
@@ -267,9 +288,14 @@ export default function Home() {
                           <Checkbox
                             id="save-localStorage"
                             checked={saveToLocalStorage}
-                            onCheckedChange={(checked) => setSaveToLocalStorage(checked as boolean)}
+                            onCheckedChange={(checked) =>
+                              setSaveToLocalStorage(checked as boolean)
+                            }
                           />
-                          <Label htmlFor="save-localStorage" className="text-sm">
+                          <Label
+                            htmlFor="save-localStorage"
+                            className="text-sm"
+                          >
                             Save key to localStorage
                           </Label>
                         </div>
@@ -279,14 +305,14 @@ export default function Home() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  
+
                   <Button
                     onClick={handleRun}
                     disabled={!prompt.trim() || !apiKey || isRunning}
                     className="h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   >
                     <Play className="h-4 w-4 mr-2" />
-                    {isRunning ? 'Running...' : 'Run'}
+                    {isRunning ? "Running..." : "Run"}
                   </Button>
                 </div>
               </div>
@@ -295,72 +321,87 @@ export default function Home() {
         </div>
 
         {/* Results Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
           {MODELS.map((model) => {
             const state = modelStates[model];
             return (
-              <Card key={model} className="relative transition-all duration-300 bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg">{model}</h3>
-                    <Checkbox
-                      checked={state.enabled}
-                      onCheckedChange={(checked) => handleToggleModel(model, checked as boolean)}
-                      disabled={isRunning}
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="min-h-[200px] flex flex-col">
-                    {!state.loading && state.result && (
-                      <div className="space-y-4">
-                        {state.result.error ? (
-                          <div className="text-red-600 text-sm bg-red-50 p-4 rounded-lg border border-red-200">
-                            <div className="flex items-start space-x-2">
-                              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="font-medium">Error occurred</p>
-                                <p className="mt-1 text-xs text-red-500">{state.result.error}</p>
+              <div key={model} className="break-inside-avoid mb-6">
+                <Card className="relative transition-all duration-300 bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <h3
+                        className={`font-semibold text-lg ${!state.enabled ? "text-gray-400" : ""}`}
+                      >
+                        {model}{" "}
+                        {!state.enabled && (
+                          <span className="text-gray-400">(disabled)</span>
+                        )}
+                      </h3>
+                      <Checkbox
+                        checked={state.enabled}
+                        onCheckedChange={(checked) =>
+                          handleToggleModel(model, checked as boolean)
+                        }
+                        disabled={isRunning}
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="min-h-[200px] flex flex-col">
+                      {!state.loading && state.result && (
+                        <div className="space-y-4">
+                          {state.result.error ? (
+                            <div className="text-red-600 text-sm bg-red-50 p-4 rounded-lg border border-red-200">
+                              <div className="flex items-start space-x-2">
+                                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <p className="font-medium">Error occurred</p>
+                                  <p className="mt-1 text-xs text-red-500">
+                                    {state.result.error}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="prose prose-sm max-w-none">
-                              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                                {state.result.response}
-                              </p>
-                            </div>
-                            <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t">
-                              <span>{state.result.tokens} tokens</span>
-                              <span>{state.result.responseTime.toFixed(2)}s</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    
-                    {!state.loading && !state.result && state.enabled && (
-                      <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                        <p className="text-sm">Ready to run</p>
-                      </div>
-                    )}
-                    
-                    {!state.enabled && (
-                      <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                        <p className="text-sm">Disabled</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-                
-                {/* Loading Overlay */}
-                {state.loading && (
-                  <div className="absolute inset-0 bg-black/70 rounded-lg flex items-center justify-center z-10">
-                    <LoadingTimer startTime={state.startTime} />
-                  </div>
-                )}
-              </Card>
+                          ) : (
+                            <>
+                              <div className="prose prose-sm max-w-none">
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                  {state.result.response}
+                                </p>
+                              </div>
+                              <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t">
+                                <span>{state.result.tokens} tokens</span>
+                                <span>
+                                  {state.result.responseTime.toFixed(2)}s
+                                </span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {!state.loading && !state.result && state.enabled && (
+                        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                          <p className="text-sm">Ready to run</p>
+                        </div>
+                      )}
+
+                      {!state.enabled && (
+                        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                          <p className="text-sm">Disabled</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+
+                  {/* Loading Overlay */}
+                  {state.loading && (
+                    <div className="absolute inset-0 bg-black/70 rounded-lg flex items-center justify-center z-10">
+                      <LoadingTimer startTime={state.startTime} />
+                    </div>
+                  )}
+                </Card>
+              </div>
             );
           })}
         </div>
