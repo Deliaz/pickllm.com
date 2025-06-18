@@ -967,6 +967,16 @@ export default function Home() {
               >
                 Denis L
               </a>
+              {' • '}
+              <a 
+                href="https://github.com/Deliaz/pickllm.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 underline font-medium transition-colors"
+                aria-label="PickLLM source code on GitHub"
+              >
+                Source Code
+              </a>
             </p>
           </div>
         </footer>
