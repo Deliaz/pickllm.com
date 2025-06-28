@@ -23,6 +23,8 @@ interface ModelResult {
   promptTokens: number;
   completionTokens: number;
   price: number;
+  inputPrice: number;
+  outputPrice: number;
   responseTime: number;
   error?: string;
 }
@@ -133,6 +135,8 @@ export default function Home() {
   const [advancedSettings, setAdvancedSettings] = useState<AdvancedSettings>(DEFAULT_ADVANCED_SETTINGS);
   const [modelPrices, setModelPrices] = useState<Record<string, any>>({});
   const [totalPrice, setTotalPrice] = useState(0);
+  const [totalInputPrice, setTotalInputPrice] = useState(0);
+  const [totalOutputPrice, setTotalOutputPrice] = useState(0);
   
   const [modelStates, setModelStates] = useState<Record<string, ModelState>>(() => {
     const initialStates: Record<string, ModelState> = {};
@@ -314,7 +318,11 @@ export default function Home() {
 
     setIsRunning(true);
     setTotalPrice(0);
+    setTotalInputPrice(0);
+    setTotalOutputPrice(0);
     let runTotalPrice = 0;
+    let runInputPrice = 0;
+    let runOutputPrice = 0;
 
     // Initialize loading states
     const newStates = { ...modelStates };
@@ -365,11 +373,16 @@ export default function Home() {
 
         if (response.ok) {
           const priceInfo = modelPrices[model];
-          const price = priceInfo
-            ? data.promptTokens * priceInfo.input_cost_per_token +
-              data.completionTokens * priceInfo.output_cost_per_token
+          const inputPrice = priceInfo
+            ? data.promptTokens * priceInfo.input_cost_per_token
             : 0;
+          const outputPrice = priceInfo
+            ? data.completionTokens * priceInfo.output_cost_per_token
+            : 0;
+          const price = inputPrice + outputPrice;
           runTotalPrice += price;
+          runInputPrice += inputPrice;
+          runOutputPrice += outputPrice;
           setModelStates(prev => ({
             ...prev,
             [model]: {
@@ -382,6 +395,8 @@ export default function Home() {
                 promptTokens: data.promptTokens,
                 completionTokens: data.completionTokens,
                 price,
+                inputPrice,
+                outputPrice,
                 responseTime
               }
             }
@@ -406,6 +421,8 @@ export default function Home() {
                 promptTokens: 0,
                 completionTokens: 0,
                 price: 0,
+                inputPrice: 0,
+                outputPrice: 0,
                 responseTime,
                 error: errorMessage
               }
@@ -434,6 +451,8 @@ export default function Home() {
               promptTokens: 0,
               completionTokens: 0,
               price: 0,
+              inputPrice: 0,
+              outputPrice: 0,
               responseTime,
               error: errorMessage
             }
@@ -444,6 +463,8 @@ export default function Home() {
 
     await Promise.all(promises);
     setTotalPrice(runTotalPrice);
+    setTotalInputPrice(runInputPrice);
+    setTotalOutputPrice(runOutputPrice);
     setIsRunning(false);
   };
 
@@ -627,7 +648,7 @@ export default function Home() {
             </CardContent>
             {totalPrice > 0 && (
               <div className="px-6 pb-4 text-sm text-muted-foreground">
-                Total price: ${totalPrice.toFixed(6)}
+                Total price: ${totalPrice.toFixed(6)} (input ${totalInputPrice.toFixed(6)} + output ${totalOutputPrice.toFixed(6)})
               </div>
             )}
           </Card>
