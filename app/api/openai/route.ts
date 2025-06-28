@@ -77,7 +77,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       response: data.choices[0].message.content,
-      tokens: data.usage.total_tokens,
+      promptTokens: data.usage.prompt_tokens,
+      completionTokens: data.usage.completion_tokens,
+      totalTokens: data.usage.total_tokens,
     });
 
   } catch (error) {
