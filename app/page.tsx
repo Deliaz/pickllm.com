@@ -646,11 +646,11 @@ export default function Home() {
                 </div>
               </div>
             </CardContent>
-            {totalPrice > 0 && (
-              <div className="px-6 pb-4 text-sm text-muted-foreground">
-                Total price: ${totalPrice.toFixed(6)} (input ${totalInputPrice.toFixed(6)} + output ${totalOutputPrice.toFixed(6)})
-              </div>
-            )}
+            <div className="px-6 pb-4 text-sm text-muted-foreground">
+              {totalPrice > 0
+                ? `Total price: $${totalPrice.toFixed(6)} (input ${totalInputPrice.toFixed(6)} + output ${totalOutputPrice.toFixed(6)})`
+                : 'Run your prompt to evaluate the total cost'}
+            </div>
           </Card>
         </section>
 
