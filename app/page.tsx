@@ -20,6 +20,9 @@ interface ModelResult {
   model: string;
   response: string;
   tokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  price: number;
   responseTime: number;
   error?: string;
 }
@@ -128,6 +131,8 @@ export default function Home() {
   const [customModels, setCustomModels] = useState<string[]>(DEFAULT_MODELS);
   const [tempModelsText, setTempModelsText] = useState('');
   const [advancedSettings, setAdvancedSettings] = useState<AdvancedSettings>(DEFAULT_ADVANCED_SETTINGS);
+  const [modelPrices, setModelPrices] = useState<Record<string, any>>({});
+  const [totalPrice, setTotalPrice] = useState(0);
   
   const [modelStates, setModelStates] = useState<Record<string, ModelState>>(() => {
     const initialStates: Record<string, ModelState> = {};
@@ -180,6 +185,20 @@ export default function Home() {
         console.error('Failed to parse saved advanced settings:', error);
       }
     }
+  }, []);
+
+  // Fetch model prices once on mount
+  useEffect(() => {
+    const loadPrices = async () => {
+      try {
+        const res = await fetch('/api/model-prices');
+        const data = await res.json();
+        setModelPrices(data);
+      } catch (e) {
+        console.error('Failed to load model prices', e);
+      }
+    };
+    loadPrices();
   }, []);
 
   // Save advanced settings to localStorage whenever they change
@@ -294,6 +313,8 @@ export default function Home() {
     if (enabledModels.length === 0) return;
 
     setIsRunning(true);
+    setTotalPrice(0);
+    let runTotalPrice = 0;
 
     // Initialize loading states
     const newStates = { ...modelStates };
@@ -343,6 +364,12 @@ export default function Home() {
         const responseTime = (endTime - newStates[model].startTime) / 1000;
 
         if (response.ok) {
+          const priceInfo = modelPrices[model];
+          const price = priceInfo
+            ? data.promptTokens * priceInfo.input_cost_per_token +
+              data.completionTokens * priceInfo.output_cost_per_token
+            : 0;
+          runTotalPrice += price;
           setModelStates(prev => ({
             ...prev,
             [model]: {
@@ -351,7 +378,10 @@ export default function Home() {
               result: {
                 model,
                 response: data.response,
-                tokens: data.tokens,
+                tokens: data.totalTokens,
+                promptTokens: data.promptTokens,
+                completionTokens: data.completionTokens,
+                price,
                 responseTime
               }
             }
@@ -373,6 +403,9 @@ export default function Home() {
                 model,
                 response: '',
                 tokens: 0,
+                promptTokens: 0,
+                completionTokens: 0,
+                price: 0,
                 responseTime,
                 error: errorMessage
               }
@@ -398,6 +431,9 @@ export default function Home() {
               model,
               response: '',
               tokens: 0,
+              promptTokens: 0,
+              completionTokens: 0,
+              price: 0,
               responseTime,
               error: errorMessage
             }
@@ -407,6 +443,7 @@ export default function Home() {
     });
 
     await Promise.all(promises);
+    setTotalPrice(runTotalPrice);
     setIsRunning(false);
   };
 
@@ -588,6 +625,11 @@ export default function Home() {
                 </div>
               </div>
             </CardContent>
+            {totalPrice > 0 && (
+              <div className="px-6 pb-4 text-sm text-muted-foreground">
+                Total price: ${totalPrice.toFixed(6)}
+              </div>
+            )}
           </Card>
         </section>
 
@@ -791,6 +833,7 @@ export default function Home() {
                             </div>
                             <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t">
                               <span>{state.result.tokens} tokens</span>
+                              <span>${state.result.price.toFixed(6)}</span>
                               <span>{state.result.responseTime.toFixed(2)}s</span>
                             </div>
                           </>
