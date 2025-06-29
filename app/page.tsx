@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2, Key, Play, AlertCircle, Settings, ChevronDown, ChevronUp, List, RotateCcw, HelpCircle } from 'lucide-react';
@@ -137,6 +138,8 @@ export default function Home() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [totalInputPrice, setTotalInputPrice] = useState(0);
   const [totalOutputPrice, setTotalOutputPrice] = useState(0);
+
+  const [sortBy, setSortBy] = useState<'default' | 'time' | 'price' | 'tokens'>('default');
   
   const [modelStates, setModelStates] = useState<Record<string, ModelState>>(() => {
     const initialStates: Record<string, ModelState> = {};
@@ -532,6 +535,26 @@ export default function Home() {
   
   };
 
+  const sortedModels = (() => {
+    const models = [...customModels];
+    if (sortBy === 'default') return models;
+    const getValue = (model: string) => {
+      const result = modelStates[model]?.result;
+      if (!result) return Number.POSITIVE_INFINITY;
+      switch (sortBy) {
+        case 'time':
+          return result.responseTime;
+        case 'price':
+          return result.price;
+        case 'tokens':
+          return result.tokens;
+        default:
+          return Number.POSITIVE_INFINITY;
+      }
+    };
+    return models.sort((a, b) => getValue(a) - getValue(b));
+  })();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Head>
@@ -576,17 +599,18 @@ export default function Home() {
           <h2 id="prompt-section" className="sr-only">Prompt Input Section</h2>
           <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
             <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
                 <div className="flex-1">
                   <Label htmlFor="prompt" className="text-sm font-medium mb-2 block">
                     Enter your prompt
                   </Label>
-                  <Input
+                  <Textarea
                     id="prompt"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="What would you like to ask the models?"
-                    className="h-12 text-base"
+                    className="text-base"
+                    rows={3}
                     disabled={isRunning}
                     aria-describedby="prompt-help"
                   />
@@ -809,10 +833,25 @@ export default function Home() {
           </Collapsible>
         </section>
 
+        <div className="flex justify-end mb-4 items-center gap-2">
+          <Label htmlFor="sortBy" className="text-sm">Sort results by</Label>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+            <SelectTrigger id="sortBy" className="w-[150px]">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Model</SelectItem>
+              <SelectItem value="time">Time</SelectItem>
+              <SelectItem value="price">Price</SelectItem>
+              <SelectItem value="tokens">Tokens</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Results Grid - Masonry Style */}
         <h2 id="results-section" className="sr-only">Model Comparison Results</h2>
         <section className="columns-1 md:columns-2 lg:columns-3 xl:columns-3 gap-6 space-y-6" aria-labelledby="results-section">
-          {customModels.map((model: string) => {
+          {sortedModels.map((model: string) => {
             const state = modelStates[model];
             if (!state) return null;
             
