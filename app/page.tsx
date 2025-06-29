@@ -599,7 +599,7 @@ export default function Home() {
           <h2 id="prompt-section" className="sr-only">Prompt Input Section</h2>
           <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
             <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
                 <div className="flex-1">
                   <Label htmlFor="prompt" className="text-sm font-medium mb-2 block">
                     Enter your prompt
